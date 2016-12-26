@@ -1,6 +1,6 @@
 # phantomjs-redis
 
-
+NodeJS microservice to interact with PhantomJS via Redis
 
 ## Configuration
 
