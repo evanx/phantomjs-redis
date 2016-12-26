@@ -54,8 +54,7 @@ let start = (() => {
 
 let handle = (() => {
     var _ref4 = _asyncToGenerator(function* (message) {
-        logger.debug('handle', message.message.text, message.message.chat.id, message.message.from.username, JSON.stringify(message, null, 2));
-        return sendTelegram(message.message.chat.id, 'text', `Thanks ${ message.message.from.username } (${ message.message.text })`);
+        logger.debug('handle', JSON.stringify(message, null, 2));
     });
 
     return function handle(_x4) {
@@ -63,74 +62,44 @@ let handle = (() => {
     };
 })();
 
-let sendTelegram = (() => {
-    var _ref5 = _asyncToGenerator(function* (chatId, format, ...content) {
-        logger.debug('sendTelegram', chatId, format, content);
-        try {
-            const text = lodash.trim(lodash.flatten(content).join(' '));
-            assert(chatId, 'chatId');
-            let uri = `sendMessage?chat_id=${ chatId }`;
-            uri += '&disable_notification=true';
-            if (format === 'markdown') {
-                uri += `&parse_mode=Markdown`;
-            } else if (format === 'html') {
-                uri += `&parse_mode=HTML`;
-            }
-            uri += `&text=${ encodeURIComponent(text) }`;
-            const url = `https://api.telegram.org/bot${ config.token }/${ uri }`;
-            const res = yield fetch(url);
-            if (res.status !== 200) {
-                logger.warn('sendTelegram', chatId, url);
-            }
-        } catch (err) {
-            logger.error('sendTelegram', err);
-        }
-    });
+let startTest = (() => {
+    var _ref5 = _asyncToGenerator(function* () {});
 
-    return function sendTelegram(_x5, _x6) {
+    return function startTest() {
         return _ref5.apply(this, arguments);
     };
 })();
 
-let startTest = (() => {
-    var _ref6 = _asyncToGenerator(function* () {});
-
-    return function startTest() {
-        return _ref6.apply(this, arguments);
-    };
-})();
-
 let startDevelopment = (() => {
-    var _ref7 = _asyncToGenerator(function* () {
+    var _ref6 = _asyncToGenerator(function* () {
         logger.info('startDevelopment', config.namespace, queue.req);
         yield Promise.all(Object.keys(testData).map((() => {
-            var _ref8 = _asyncToGenerator(function* (key, index) {
-                const id = index + 101;
+            var _ref7 = _asyncToGenerator(function* (key, index) {
                 const results = yield multiExecAsync(client, function (multi) {
-                    testData[key](multi, { id });
+                    testData[key](multi, { index });
                 });
-                logger.info('results', key, id, results.join(' '));
+                logger.info('results', key, index, results.join(' '));
             });
 
-            return function (_x7, _x8) {
-                return _ref8.apply(this, arguments);
+            return function (_x5, _x6) {
+                return _ref7.apply(this, arguments);
             };
         })()));
         logger.info('llen', queue.req, (yield client.llenAsync(queue.req)));
     });
 
     return function startDevelopment() {
-        return _ref7.apply(this, arguments);
+        return _ref6.apply(this, arguments);
     };
 })();
 
 let end = (() => {
-    var _ref9 = _asyncToGenerator(function* () {
+    var _ref8 = _asyncToGenerator(function* () {
         client.quit();
     });
 
     return function end() {
-        return _ref9.apply(this, arguments);
+        return _ref8.apply(this, arguments);
     };
 })();
 
@@ -142,13 +111,10 @@ const lodash = require('lodash');
 const Promise = require('bluebird');
 
 const envName = process.env.NODE_ENV || 'production';
-const config = require(process.env.configFile || `/h/private-config/scraperbot/${ envName }`);
+const config = require(process.env.configFile || `config/${ envName }`);
 const state = {};
 const redis = require('redis');
-const client = Promise.promisifyAll(redis.createClient(config.telebotRedis));
-
-const logger = require('winston');
-logger.level = config.loggerLevel || 'info';
+const client = Promise.promisifyAll(redis.createClient(config.redisUrl));
 
 class Counter {
     constructor() {
@@ -170,8 +136,8 @@ const counters = {
 
 const testData = {
     ok: (multi, ctx) => {
-        multi.hset(`${ config.namespace }:${ ctx.id }:h`, 'url', 'http://httpstat.us/200');
-        multi.lpush(queue.req, ctx.id);
+        multi.hset(`${ config.namespace }:${ ctx.index }:h`, 'url', 'http://httpstat.us/200');
+        multi.lpush(queue.req, ctx.index);
     }
 };
 
